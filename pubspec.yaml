@@ -1,0 +1,8 @@
+name: telegram_crm_bot
+version: 1.0.0
+
+environment:
+  sdk: ">=2.17.0 <4.0.0"
+
+dependencies:
+  http: ^1.2.0
