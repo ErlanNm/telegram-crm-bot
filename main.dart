@@ -142,7 +142,9 @@ void main() async {
     final res = await http.get(Uri.parse('$url/getUpdates?offset=$offset'));
     final json = jsonDecode(res.body);
 
-    for (var update in json['result']) {
+   final result = json['result'] ?? [];
+
+     for (var update in result) {
       offset = update['update_id'] + 1;
 
       final msg = update['message'];
