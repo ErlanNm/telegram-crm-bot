@@ -90,7 +90,12 @@ Future<void> sendMessage(int chatId, String text, [Map? keyboard]) async {
       body['reply_markup'] = jsonEncode(keyboard);
     }
 
-    await http.post(Uri.parse('$url/sendMessage'), body: body);
+    final res = await http.post(
+      Uri.parse('$url/sendMessage'),
+      body: body,
+    );
+
+    print("📤 RESPONSE: ${res.body}");
   } catch (e) {
     print("❌ sendMessage error: $e");
   }
