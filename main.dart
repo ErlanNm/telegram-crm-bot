@@ -2,24 +2,21 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
-// 🔑 TOKEN (FIXED)
-final token = Platform.environment['BOT_TOKEN'];
-final url = 'https://api.telegram.org/bot$token';
+// ======================
+// 🔑 TOKEN
+// ======================
+final String? token = Platform.environment['BOT_TOKEN'];
+late final String url;
 
 // 👑 ADMIN
-const adminChatId = 6161969307;
+const int adminChatId = 6161969307;
 
 // ======================
-// 🌍 LANGUAGE
+// 🌍 STATE
 // ======================
 Map<int, String> lang = {};
-
-// ======================
-// 📦 STATE
-// ======================
 Map<int, String> step = {};
 Map<int, Map<String, String>> data = {};
-Map<int, Set<String>> doneSteps = {};
 
 // ======================
 // 🌍 TEXTS
@@ -27,47 +24,39 @@ Map<int, Set<String>> doneSteps = {};
 Map<String, Map<String, String>> t = {
   "ru": {
     "choose_lang": "🌍 Выберите язык:",
-    "menu": "👋 Добро пожаловать!\nВыберите действие:",
+    "menu": "👋 Меню:",
     "sent": "✅ Заявка отправлена!",
+
     "course": "📚 Курс",
-    "app": "📱 Заказ приложения",
-    "name": "👤 Введите имя:",
-    "phone": "📞 Введите телефон:",
-    "budget": "💰 Укажите бюджет:",
-    "type": "📱 Какое приложение нужно?",
-    "desc": "📝 Кратко опишите проект:",
-    "goal": "🎯 Зачем тебе курс?",
-    "shop": "🛒 Магазин",
-    "delivery": "🚚 Доставка",
-    "taxi": "🚕 Такси",
-    "education": "📚 Обучение",
-    "other": "📱 Другое",
-    "work": "💼 Работа",
-    "freelance": "💸 Фриланс",
-    "project": "🚀 Свой проект",
-    "study": "📚 Просто учусь",
+    "app": "📱 Приложение",
+    "bot": "🤖 Заказать бота",
+
+    "name": "👤 Имя:",
+    "phone": "📞 Телефон:",
+    "budget": "💰 Бюджет:",
+    "type": "📱 Тип:",
+    "desc": "📝 Описание:",
+
+    "bot_type": "🤖 Какой бот нужен?",
+    "goal": "🎯 Цель:",
   },
   "kg": {
     "choose_lang": "🌍 Тилди тандаңыз:",
-    "menu": "👋 Кош келиңиз!\nАракетти тандаңыз:",
-    "sent": "✅ Өтүнмө жөнөтүлдү!",
+    "menu": "👋 Меню:",
+    "sent": "✅ Жөнөтүлдү!",
+
     "course": "📚 Курс",
-    "app": "📱 Приложение заказ",
-    "name": "👤 Атыңызды жазыңыз:",
-    "phone": "📞 Телефон жазыңыз:",
-    "budget": "💰 Бюджетти жазыңыз:",
-    "type": "📱 Кандай приложение керек?",
-    "desc": "📝 Долбоорду кыскача сүрөттөңүз:",
-    "goal": "🎯 Эмне үчүн курс керек?",
-    "shop": "🛒 Дүкөн",
-    "delivery": "🚚 Жеткирүү",
-    "taxi": "🚕 Такси",
-    "education": "📚 Окуу",
-    "other": "📱 Башка",
-    "work": "💼 Жумуш",
-    "freelance": "💸 Фриланс",
-    "project": "🚀 Өз долбоорум",
-    "study": "📚 Жөн эле окуп жатам",
+    "app": "📱 Приложение",
+    "bot": "🤖 Бот заказ",
+
+    "name": "👤 Атыңыз:",
+    "phone": "📞 Телефон:",
+    "budget": "💰 Бюджет:",
+    "type": "📱 Түрү:",
+    "desc": "📝 Сүрөттөмө:",
+
+    "bot_type": "🤖 Кандай бот керек?",
+    "goal": "🎯 Максат:",
   }
 };
 
@@ -76,43 +65,23 @@ Map<String, Map<String, String>> t = {
 // ======================
 String tr(int chatId, String key) {
   final l = lang[chatId] ?? "ru";
-  return t[l]?[key] ?? key;
+  return t[l]?[key] ?? t["ru"]![key] ?? key;
 }
 
 // ======================
-// 📤 SEND
+// 📤 SEND MESSAGE
 // ======================
 Future<void> sendMessage(int chatId, String text, [Map? keyboard]) async {
-  try {
-    final body = {'chat_id': chatId.toString(), 'text': text};
+  final body = {
+    "chat_id": chatId.toString(),
+    "text": text,
+  };
 
-    if (keyboard != null) {
-      body['reply_markup'] = jsonEncode(keyboard);
-    }
-
-    final res = await http.post(
-      Uri.parse('$url/sendMessage'),
-      body: body,
-    );
-
-    print("📤 RESPONSE: ${res.body}");
-  } catch (e) {
-    print("❌ sendMessage error: $e");
+  if (keyboard != null) {
+    body["reply_markup"] = jsonEncode(keyboard);
   }
-}
 
-// ======================
-// ❌ REMOVE KEYBOARD
-// ======================
-Future<void> removeKeyboard(int chatId, String text) async {
-  await http.post(
-    Uri.parse('$url/sendMessage'),
-    body: {
-      'chat_id': chatId.toString(),
-      'text': text,
-      'reply_markup': jsonEncode({"remove_keyboard": true}),
-    },
-  );
+  await http.post(Uri.parse("$url/sendMessage"), body: body);
 }
 
 // ======================
@@ -120,41 +89,41 @@ Future<void> removeKeyboard(int chatId, String text) async {
 // ======================
 void main() async {
   if (token == null || token!.isEmpty) {
-    print("❌ TOKEN IS NULL");
+    print("❌ BOT_TOKEN missing");
     return;
   }
 
-  print("🚀 CRM BOT STARTED");
-  print("TOKEN: $token");
+  url = "https://api.telegram.org/bot$token";
+
+  print("🚀 BOT STARTED");
 
   int offset = 0;
 
   while (true) {
     try {
-      final res =
-          await http.get(Uri.parse('$url/getUpdates?offset=$offset'));
-
+      final res = await http.get(Uri.parse("$url/getUpdates?offset=$offset"));
       final json = jsonDecode(res.body);
-      final result = json['result'] ?? [];
+
+      final result = json["result"] ?? [];
 
       for (var update in result) {
-        offset = update['update_id'] + 1;
+        offset = update["update_id"] + 1;
 
-        final msg = update['message'];
+        final msg = update["message"];
         if (msg == null) continue;
 
-        final chatId = msg['chat']['id'];
-        final text = msg['text'] ?? '';
+        final int chatId = msg["chat"]["id"];
+        final String text = msg["text"] ?? "";
+
+        data.putIfAbsent(chatId, () => {});
+        step.putIfAbsent(chatId, () => "");
 
         print("📩 $chatId: $text");
 
-        // init
-        data.putIfAbsent(chatId, () => {});
-        step.putIfAbsent(chatId, () => '');
-        doneSteps.putIfAbsent(chatId, () => {});
-
+        // ======================
         // START
-        if (text == '/start') {
+        // ======================
+        if (text == "/start") {
           await sendMessage(chatId, t["ru"]!["choose_lang"]!, {
             "keyboard": [
               [{"text": "🇷🇺 Русский"}],
@@ -164,153 +133,154 @@ void main() async {
           });
         }
 
-        // LANG
+        // ======================
+        // LANGUAGE + MENU
+        // ======================
         else if (text == "🇷🇺 Русский") {
           lang[chatId] = "ru";
 
           await sendMessage(chatId, tr(chatId, "menu"), {
             "keyboard": [
-              [{"text": tr(chatId, "course")}],
               [{"text": tr(chatId, "app")}],
+              [{"text": tr(chatId, "course")}],
+              [{"text": tr(chatId, "bot")}], // ✅ FIXED
             ],
             "resize_keyboard": true,
           });
-        } else if (text == "🇰🇬 Кыргызча") {
+        }
+
+        else if (text == "🇰🇬 Кыргызча") {
           lang[chatId] = "kg";
 
           await sendMessage(chatId, tr(chatId, "menu"), {
             "keyboard": [
-              [{"text": tr(chatId, "course")}],
               [{"text": tr(chatId, "app")}],
+              [{"text": tr(chatId, "course")}],
+              [{"text": tr(chatId, "bot")}], // ✅ FIXED
             ],
             "resize_keyboard": true,
           });
         }
 
-        // APP START
+        // ======================
+        // START FLOWS
+        // ======================
         else if (text == tr(chatId, "app")) {
-          step[chatId] = 'a_name';
+          step[chatId] = "a_name";
           await sendMessage(chatId, tr(chatId, "name"));
         }
 
-        // COURSE START
         else if (text == tr(chatId, "course")) {
-          step[chatId] = 'c_name';
+          step[chatId] = "c_name";
           await sendMessage(chatId, tr(chatId, "name"));
         }
 
-        // FLOW
-        else {
-          final s = step[chatId];
+        else if (text == tr(chatId, "bot")) {
+          step[chatId] = "b_name";
+          await sendMessage(chatId, tr(chatId, "name"));
+        }
 
-          if (s == 'a_name') {
-            data[chatId]!['name'] = text;
-            step[chatId] = 'a_phone';
+        // ======================
+        // FLOW ENGINE
+        // ======================
+        else {
+          final s = step[chatId] ?? "";
+
+          // ===== APP =====
+          if (s == "a_name") {
+            data[chatId]!["name"] = text;
+            step[chatId] = "a_phone";
             await sendMessage(chatId, tr(chatId, "phone"));
-          } else if (s == 'a_phone') {
-            data[chatId]!['phone'] = text;
-            step[chatId] = 'a_budget';
+          }
+
+          else if (s == "a_phone") {
+            data[chatId]!["phone"] = text;
+            step[chatId] = "a_budget";
             await sendMessage(chatId, tr(chatId, "budget"));
-          } else if (s == 'a_budget') {
-            data[chatId]!['budget'] = text;
-            step[chatId] = 'a_type';
+          }
+
+          else if (s == "a_budget") {
+            data[chatId]!["budget"] = text;
+            step[chatId] = "a_type";
 
             await sendMessage(chatId, tr(chatId, "type"), {
               "keyboard": [
-                [{"text": tr(chatId, "shop")}],
-                [{"text": tr(chatId, "delivery")}],
-                [{"text": tr(chatId, "taxi")}],
-                [{"text": tr(chatId, "education")}],
-                [{"text": tr(chatId, "other")}],
+                [{"text": "🛒 Shop"}],
+                [{"text": "🚕 Taxi"}],
+                [{"text": "🚚 Delivery"}],
+                [{"text": "📚 Education"}],
               ],
               "resize_keyboard": true,
             });
-          } else if (s == 'a_type') {
-            data[chatId]!['type'] = text;
-            step[chatId] = 'a_desc';
-
-            await sendMessage(chatId, tr(chatId, "desc"), {
-              "remove_keyboard": true,
-            });
-          } else if (s == 'a_desc') {
-            data[chatId]!['desc'] = text;
-
-            final lead = data[chatId]!;
-
-            await sendMessage(
-              adminChatId,
-              "🔥 NEW APP LEAD\n\n"
-              "👤 Name: ${lead['name']}\n"
-              "📞 Phone: ${lead['phone']}\n"
-              "💰 Budget: ${lead['budget']}\n"
-              "📱 Type: ${lead['type']}\n"
-              "📝 Desc: ${lead['desc']}\n"
-              "👤 User: $chatId",
-            );
-
-            await removeKeyboard(chatId, tr(chatId, "sent"));
-
-            await sendMessage(chatId, tr(chatId, "menu"), {
-              "keyboard": [
-                [{"text": tr(chatId, "course")}],
-                [{"text": tr(chatId, "app")}],
-              ],
-              "resize_keyboard": true,
-            });
-
-            data[chatId] = {};
-            step[chatId] = '';
           }
 
-          // COURSE
-          else if (s == 'c_name') {
-            data[chatId]!['name'] = text;
-            step[chatId] = 'c_phone';
+          else if (s == "a_type") {
+            data[chatId]!["type"] = text;
+            step[chatId] = "a_desc";
+            await sendMessage(chatId, tr(chatId, "desc"), {"remove_keyboard": true});
+          }
+
+          else if (s == "a_desc") {
+            await sendMessage(adminChatId, "🔥 APP LEAD\n$text");
+            data.remove(chatId);
+            step.remove(chatId);
+          }
+
+          // ===== BOT =====
+          else if (s == "b_name") {
+            data[chatId]!["name"] = text;
+            step[chatId] = "b_phone";
             await sendMessage(chatId, tr(chatId, "phone"));
-          } else if (s == 'c_phone') {
-            data[chatId]!['phone'] = text;
-            step[chatId] = 'c_goal';
+          }
 
-            await sendMessage(chatId, tr(chatId, "goal"), {
+          else if (s == "b_phone") {
+            data[chatId]!["phone"] = text;
+            step[chatId] = "b_type";
+
+            await sendMessage(chatId, tr(chatId, "bot_type"), {
               "keyboard": [
-                [{"text": tr(chatId, "work")}],
-                [{"text": tr(chatId, "freelance")}],
-                [{"text": tr(chatId, "project")}],
-                [{"text": tr(chatId, "study")}],
+                [{"text": "🛒 Shop Bot"}],
+                [{"text": "💬 CRM Bot"}],
+                [{"text": "🤖 AI Bot"}],
               ],
               "resize_keyboard": true,
             });
-          } else if (s == 'c_goal') {
-            data[chatId]!['goal'] = text;
+          }
 
-            final lead = data[chatId]!;
+          else if (s == "b_type") {
+            data[chatId]!["type"] = text;
+            step[chatId] = "b_desc";
+            await sendMessage(chatId, tr(chatId, "desc"), {"remove_keyboard": true});
+          }
 
-            await sendMessage(
-              adminChatId,
-              "🔥 NEW COURSE LEAD\n\n"
-              "👤 Name: ${lead['name']}\n"
-              "📞 Phone: ${lead['phone']}\n"
-              "🎯 Goal: ${lead['goal']}\n"
-              "👤 User: $chatId",
-            );
+          else if (s == "b_desc") {
+            await sendMessage(adminChatId, "🔥 BOT LEAD\n$text");
+            data.remove(chatId);
+            step.remove(chatId);
+          }
 
-            await removeKeyboard(chatId, tr(chatId, "sent"));
+          // ===== COURSE =====
+          else if (s == "c_name") {
+            data[chatId]!["name"] = text;
+            step[chatId] = "c_phone";
+            await sendMessage(chatId, tr(chatId, "phone"));
+          }
 
-            await sendMessage(chatId, tr(chatId, "menu"), {
-              "keyboard": [
-                [{"text": tr(chatId, "course")}],
-                [{"text": tr(chatId, "app")}],
-              ],
-              "resize_keyboard": true,
-            });
+          else if (s == "c_phone") {
+            data[chatId]!["phone"] = text;
+            step[chatId] = "c_goal";
+            await sendMessage(chatId, tr(chatId, "goal"));
+          }
 
-            data[chatId] = {};
-            step[chatId] = '';
+          else if (s == "c_goal") {
+            await sendMessage(adminChatId, "🔥 COURSE LEAD\n$text");
+            data.remove(chatId);
+            step.remove(chatId);
           }
         }
       }
     } catch (e) {
-      print("❌ LOOP ERROR: $e");
+      print("❌ ERROR: $e");
     }
 
     await Future.delayed(Duration(seconds: 1));
